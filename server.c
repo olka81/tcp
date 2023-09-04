@@ -21,26 +21,27 @@ int main(int argc, char * argv[])
     
     peer.sin_family = AF_INET;
     peer.sin_port = PORT_NUMBER;
-    peer.sin_addr.s_addr = inet_addr("127.0.0.1");
-    int result = connect(my_sckt, (const struct sockaddr*)&peer, sizeof(peer));
+    peer.sin_addr.s_addr = htonl(INADDR_ANY);
+    int result = bind(my_sckt, (struct sockaddr *)&peer, sizeof(peer));
+    if(result  < 0)
+    {
+        //error
+        //kill socket&
+        return result;
+    }
+    result = listen(my_sckt, 1);
     if(result != 0)
     {
-        //connect error
+        //error
         //kill socket?
+        //kill connection?
         return result;
-    }
-    char ping[] = "ping";
-    result = send( my_sckt, ping, strlen(ping), 0);
-    if( result <= 0 )
-    {
-        //error send
-        //kill socket?
-        //kill connect?
-        return result;
-    }
-    if(shutdown(my_sckt, 1) < 0)
-    {
-        //what to do?
     }
 
+    result = accept(my_sckt, NULL, NULL);
+    if( result < 0 )
+    {
+        return result;
+    }
+    
 }
