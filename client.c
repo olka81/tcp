@@ -16,4 +16,8 @@ int main(int argc, char * argv[])
     }
     struct sockaddr_in  peer;
 
+    peer.sin_family = AF_INET;
+    peer.sin_port = PORT_NUMBER;
+    peer.sin_addr.s_addr = inet_addr("127.0.0.1");
+    int result = connect(my_sckt, &peer, sizeof(peer));
 }
