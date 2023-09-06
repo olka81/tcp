@@ -11,37 +11,67 @@
 
 int main(int argc, char * argv[])
 {
-    int my_sckt = socket(AF_INET, SOCK_STREAM, 0);
-    if(my_sckt  < 0 )
+    int listen_sckt = socket(AF_INET, SOCK_STREAM, 0);
+    if(listen_sckt  < 0 )
     {
-        //error init socket
-        return my_sckt;
+        //perror 
+        return listen_sckt;
     }
     struct sockaddr_in peer;
+    memset(&peer, 0, sizeof(peer));
     
     peer.sin_family = AF_INET;
     peer.sin_port = PORT_NUMBER;
-    peer.sin_addr.s_addr = htonl(INADDR_ANY);
-    int result = bind(my_sckt, (struct sockaddr *)&peer, sizeof(peer));
+    peer.sin_addr.s_addr = htonl(INADDR_ANY); //or htons?
+    int result = bind(listen_sckt, (struct sockaddr *)&peer, sizeof(peer)); // I still don't understand, how we can cast sockaddr_in to sockaddr
     if(result  < 0)
     {
-        //error
-        //kill socket&
+        //perror
+        //kill socket?
         return result;
     }
-    result = listen(my_sckt, 1);
+    printf("I'll be waiting\r\n");
+    result = listen(listen_sckt, SOMAXCONN);
     if(result != 0)
     {
-        //error
+        //perror
+        //kill socket?printf("I'm waiting\r\n");
+        //kill connection?
+        return result;
+    }
+    int client_sckt = accept(listen_sckt, NULL, NULL);
+    if( client_sckt < 0 )
+    {
+        //perror
         //kill socket?
         //kill connection?
         return result;
     }
-
-    result = accept(my_sckt, NULL, NULL);
-    if( result < 0 )
+    shutdown(listen_sckt, 1);
+    char buffer[256];
+    memset(buffer, 0, 256);
+    result = recv(client_sckt, buffer, 255, 0);
+    if(result < 0)
     {
+        //perror
+        //kill socket?
+        //kill connection?
         return result;
     }
-    
+    printf("I recieved %s\r\n", buffer);
+    char pong[] = "pong";
+    result = send( client_sckt, pong, strlen(pong), 0);
+    if( result <= 0 )
+    {
+        //error send
+        //kill socket?
+        //kill connect?
+        return result;
+    }
+    printf("I send %s\r\n", pong);
+    shutdown(client_sckt, 0);
+
+
+
+
 }

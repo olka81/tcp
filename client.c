@@ -14,7 +14,7 @@ int main(int argc, char * argv[])
     int my_sckt = socket(AF_INET, SOCK_STREAM, 0);
     if(my_sckt  < 0 )
     {
-        //error init socket
+        //error init socketprintf("I'm waiting\r\n");
         return my_sckt;
     }
     struct sockaddr_in peer;
@@ -38,9 +38,16 @@ int main(int argc, char * argv[])
         //kill connect?
         return result;
     }
-    if(shutdown(my_sckt, 1) < 0)
-    {
-        //what to do?
-    }
+    printf("I sent ping\r\n");
+    shutdown(my_sckt, SHUT_WR);
 
+    char recieveBuf[256];
+    memset(recieveBuf, 0, 256);
+    result = recv(my_sckt, recieveBuf, 255, 0);
+    if(result < 0)
+        {
+            //error
+        }
+    printf("I recieved %s\r\n", recieveBuf);
+    shutdown(my_sckt, 0);
 }
