@@ -35,7 +35,7 @@ int main(int argc, char * argv[])
     if(result != 0)
     {
         //perror
-        //kill socket?printf("I'm waiting\r\n");
+        //kill socket?
         //kill connection?
         return result;
     }
@@ -68,7 +68,7 @@ int main(int argc, char * argv[])
         //kill connect?
         return result;
     }
-    printf("I send %s\r\n", pong);
+    printf("I sent %s\r\n", pong);
     shutdown(client_sckt, 0);
 
 
