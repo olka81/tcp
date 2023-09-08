@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 #define PORT_NUMBER 4242
 
@@ -18,18 +19,21 @@ int main(int argc, char * argv[])
         return my_sckt;
     }
     struct sockaddr_in peer;
-    
+
     peer.sin_family = AF_INET;
-    peer.sin_port = PORT_NUMBER;
+    peer.sin_port = htons(PORT_NUMBER);
     peer.sin_addr.s_addr = inet_addr("127.0.0.1");
     int result = connect(my_sckt, (const struct sockaddr*)&peer, sizeof(peer));
     if(result != 0)
     {
+        int e = errno;
+        printf("connect(): %s", strerror(e));
         //connect error
         //kill socket?
         return result;
     }
     char ping[] = "ping";
+    printf("size of ping: %ld\n", sizeof(ping));
     result = send( my_sckt, ping, strlen(ping), 0);
     if( result <= 0 )
     {

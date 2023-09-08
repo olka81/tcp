@@ -14,15 +14,15 @@ int main(int argc, char * argv[])
     int listen_sckt = socket(AF_INET, SOCK_STREAM, 0);
     if(listen_sckt  < 0 )
     {
-        //perror 
+        //perror
         return listen_sckt;
     }
     struct sockaddr_in peer;
     memset(&peer, 0, sizeof(peer));
-    
+
     peer.sin_family = AF_INET;
-    peer.sin_port = PORT_NUMBER;
-    peer.sin_addr.s_addr = htonl(INADDR_ANY); //or htons?
+    peer.sin_port = htons(PORT_NUMBER);
+    peer.sin_addr.s_addr = INADDR_ANY;
     int result = bind(listen_sckt, (struct sockaddr *)&peer, sizeof(peer)); // I still don't understand, how we can cast sockaddr_in to sockaddr
     if(result  < 0)
     {
