@@ -15,9 +15,10 @@ int main(int argc, char * argv[])
     int my_sckt = socket(AF_INET, SOCK_STREAM, 0);
     if(my_sckt  < 0 )
     {
-        //error init socket
+        perror("Error socket(): ");
         return my_sckt;
     }
+    printf("Client socket created\n");
     struct sockaddr_in peer;
 
     peer.sin_family = AF_INET;
@@ -26,32 +27,29 @@ int main(int argc, char * argv[])
     int result = connect(my_sckt, (const struct sockaddr*)&peer, sizeof(peer));
     if(result != 0)
     {
-        int e = errno;
-        printf("connect(): %s", strerror(e));
-        //connect error
-        //kill socket?
+        perror("Error connect(): ");
         return result;
     }
-    char ping[] = "ping";
-    printf("size of ping: %ld\n", sizeof(ping));
+    printf("Connected to server\n");
+    const char* ping = "ping";
     result = send( my_sckt, ping, strlen(ping), 0);
     if( result <= 0 )
     {
-        //error send
-        //kill socket?
-        //kill connect?
+        perror("Error send(): ");
         return result;
     }
     printf("I sent ping\r\n");
-    shutdown(my_sckt, SHUT_WR);
+    //I still don't understand shoud I call shutdown with SHUT_WR in this case or not
+    //shutdown(my_sckt, SHUT_WR);
 
+    //well, I still have problems with implementation of a logical part: how should my server and client support handling messages. TLV or smth
     char recieveBuf[256];
     memset(recieveBuf, 0, 256);
     result = recv(my_sckt, recieveBuf, 255, 0);
     if(result < 0)
     {
-        //error
+        perror("Error recv(): ");
     }
     printf("I recieved %s\r\n", recieveBuf);
-    shutdown(my_sckt, 0);
+    shutdown(my_sckt, SHUT_RDWR); 
 }
