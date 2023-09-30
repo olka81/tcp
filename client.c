@@ -1,12 +1,14 @@
-#define _DEFAULT_SOURCE
+//#define _DEFAULT_SOURCE
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <memory.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <errno.h>
+//#include <errno.h>
+#include <unistd.h>
 
 #define PORT_NUMBER 4242
 
@@ -16,7 +18,7 @@ int main(int argc, char * argv[])
     if(my_sckt  < 0 )
     {
         perror("Error socket(): ");
-        return my_sckt;
+        exit(EXIT_FAILURE);
     }
     printf("Client socket created\n");
     struct sockaddr_in peer;
@@ -28,7 +30,8 @@ int main(int argc, char * argv[])
     if(result != 0)
     {
         perror("Error connect(): ");
-        return result;
+        close(my_sckt);
+        exit(EXIT_FAILURE);
     }
     printf("Connected to server\n");
     const char* ping = "ping";
@@ -36,7 +39,8 @@ int main(int argc, char * argv[])
     if( result <= 0 )
     {
         perror("Error send(): ");
-        return result;
+        close(my_sckt);
+        exit(EXIT_FAILURE);
     }
     printf("I sent ping\r\n");
     //I still don't understand shoud I call shutdown with SHUT_WR in this case or not
@@ -52,4 +56,5 @@ int main(int argc, char * argv[])
     }
     printf("I recieved %s\r\n", recieveBuf);
     shutdown(my_sckt, SHUT_RDWR); 
+    exit(EXIT_SUCCESS);
 }

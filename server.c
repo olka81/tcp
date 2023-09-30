@@ -1,9 +1,10 @@
-#define _DEFAULT_SOURCE
+//#define _DEFAULT_SOURCE //hmm, what does this do? i need it?
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <memory.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -16,7 +17,7 @@ int main(int argc, char * argv[])
     if(listen_sckt  < 0 )
     {
         perror("Error socket(): ");
-        return listen_sckt;
+        exit(EXIT_FAILURE);
     }
     printf("Server Socket is created.\n");
     struct sockaddr_in peer;
@@ -29,14 +30,16 @@ int main(int argc, char * argv[])
     if(result  < 0)
     {
         perror("Error bind(): ");
-        return result;
+        close(listen_sckt); //good question -- how to do it sorrectly? https://stackoverflow.com/questions/12730477/close-is-not-closing-socket-properly
+        exit(EXIT_FAILURE);
     }
     printf("Bind listening socket\n");
-    result = listen(listen_sckt, SOMAXCONN); //we should th
+    result = listen(listen_sckt, 5); //let it be the magic number 5. 
     if(result != 0)
     {
         perror("Error listen(): ");
-        return result;
+        close(listen_sckt); 
+        exit(EXIT_FAILURE);
     }
     printf("Listening...\n");
     char buffer[256];
@@ -48,11 +51,11 @@ int main(int argc, char * argv[])
         if( client_sckt < 0 )
         {
             perror("Error accept(): ");
-            return result;
+            continue;
         }
         printf("Accepted connection from Client %s:%d\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
         pid_t pid = fork ();
-        if (pid == 0) 
+        if (pid == 0) //child process
         {
             // Receive messages from the client
             while (1) 
@@ -60,7 +63,8 @@ int main(int argc, char * argv[])
                 memset (buffer, 0, sizeof(buffer));
                 if (result = recv (client_sckt , buffer, sizeof (buffer), 0) < 0) {
                     perror ("Error in recv():");
-                    return result;
+                    //close lisening socket?
+                    exit(EXIT_FAILURE);
                 }
 
                 printf ("Received data from Client %s\n", buffer);
@@ -68,15 +72,25 @@ int main(int argc, char * argv[])
                 result = send( client_sckt, pong, strlen(pong), 0);
                 if( result <= 0 )
                 {
-                    return result;
+                    perror ("Error in recv():");
+                    //close lisening socket?
+                    exit(EXIT_FAILURE);
                 }
                 printf("Sent to Client %s\n", pong);        
                 shutdown(client_sckt, SHUT_RDWR);
+                //exit(EXIT_SUCCESS); ?
             }
         } 
-        else 
+        else if(pid == -1)
+        {
+            perror ("Error fork():");
+            continue; // or exit?
+        }
+        else
         {
             //it is parent process. what to do?!
         }
     }
+    close(listen_sckt);
+    exit(EXIT_SUCCESS);
 }
