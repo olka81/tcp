@@ -26,11 +26,19 @@ int main(int argc, char * argv[])
     peer.sin_family = AF_INET;
     peer.sin_port = htons(PORT_NUMBER);
     peer.sin_addr.s_addr = INADDR_ANY;
+
+    int yes = 1;
+    if (setsockopt(listen_sckt, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+
     int result = bind(listen_sckt, (struct sockaddr *)&peer, sizeof(peer)); // I still don't understand, how we can cast sockaddr_in to sockaddr
+
     if(result  < 0)
     {
         perror("Error bind(): ");
-        close(listen_sckt); //good question -- how to do it sorrectly? https://stackoverflow.com/questions/12730477/close-is-not-closing-socket-properly
+        close(listen_sckt); //good question -- how to do it correctly? https://stackoverflow.com/questions/12730477/close-is-not-closing-socket-properly
         exit(EXIT_FAILURE);
     }
     printf("Bind listening socket\n");
@@ -42,7 +50,10 @@ int main(int argc, char * argv[])
         exit(EXIT_FAILURE);
     }
     printf("Listening...\n");
+
     char buffer[256];
+    int max_buf = sizeof(buffer);
+
     while (1) 
     {
         struct sockaddr_in clientAddr;
@@ -58,32 +69,31 @@ int main(int argc, char * argv[])
         if (pid == 0) //child process
         {
             // Receive messages from the client
-            while (1) 
-            {
-                memset (buffer, 0, sizeof(buffer));
-                if (result = recv (client_sckt , buffer, sizeof (buffer), 0) < 0) {
-                    perror ("Error in recv():");
-                    //close lisening socket?
-                    exit(EXIT_FAILURE);
-                }
-
-                printf ("Received data from Client %s\n", buffer);
-                const char* pong = "pong";
-                result = send( client_sckt, pong, strlen(pong), 0);
-                if( result <= 0 )
-                {
-                    perror ("Error in recv():");
-                    //close lisening socket?
-                    exit(EXIT_FAILURE);
-                }
-                printf("Sent to Client %s\n", pong);        
-                shutdown(client_sckt, SHUT_RDWR);
-                //exit(EXIT_SUCCESS); ?
+            if ((result = recv (client_sckt , buffer, max_buf, 0)) < 0) {
+                perror ("Error in recv():");
+                //close listening socket?
+                exit(EXIT_FAILURE);
             }
+
+            // buffer[result] = 0;
+
+            printf ("Received data from Client %.*s\n", result, buffer);
+            const char* pong = "pong";
+            result = send( client_sckt, pong, strlen(pong), 0);
+            if( result < 0 )
+            {
+                perror ("Error in recv():");
+                //close listening socket?
+                exit(EXIT_FAILURE);
+            }
+            printf("Sent to Client %s\n", pong);
+            shutdown(client_sckt, SHUT_RDWR);
+            exit(EXIT_SUCCESS);
         } 
         else if(pid == -1)
         {
             perror ("Error fork():");
+            close(client_sckt);
             continue; // or exit?
         }
         else
