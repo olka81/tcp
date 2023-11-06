@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include "message.h"
 
-#define MAX_MESSAGE 5
+#define MAX_MESSAGE 30
 
 size_t SendMessage(int socket_id, const char* text)
 {
@@ -41,7 +41,7 @@ size_t SendMessage(int socket_id, const char* text)
                 buffer[1] = length;
                 strncpy(buffer + 2, text, length);
                 buffer[length + 2] = '\0';
-                int cur_sent = send( socket_id, buffer, length + 2, 0);
+                int cur_sent = send( socket_id, buffer + sent, length - sent + 2, 0);
                 if(cur_sent <= 0)
                     return cur_sent;
                 sent += (cur_sent - 2); //maybe I need some constant for tag+langth size
@@ -49,7 +49,7 @@ size_t SendMessage(int socket_id, const char* text)
         }
         else
         {
-            buffer[0] == 1;
+            buffer[0] = 1;
             buffer[1] = MAX_MESSAGE;
             strncpy(buffer + 2, text, MAX_MESSAGE);
             buffer[MAX_MESSAGE + 2] = '\0';

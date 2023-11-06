@@ -45,7 +45,7 @@ int main(int argc, char * argv[])
         close(my_sckt);
         exit(EXIT_FAILURE);
     }
-    printf("I sent ping\r\n");
+    printf("I sent %s\r\n", ping);
     //I still don't understand shoud I call shutdown with SHUT_WR in this case or not
     //shutdown(my_sckt, SHUT_WR);
 
