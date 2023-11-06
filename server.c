@@ -38,7 +38,7 @@ int main(int argc, char * argv[])
     if(result  < 0)
     {
         perror("Error bind(): ");
-        close(listen_sckt); //good question -- how to do it correctly? https://stackoverflow.com/questions/12730477/close-is-not-closing-socket-properly
+        close(listen_sckt); 
         exit(EXIT_FAILURE);
     }
     printf("Bind listening socket\n");

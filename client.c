@@ -10,6 +10,8 @@
 //#include <errno.h>
 #include <unistd.h>
 
+#include "message.h"
+
 #define PORT_NUMBER 4242
 
 int main(int argc, char * argv[])
@@ -35,7 +37,8 @@ int main(int argc, char * argv[])
     }
     printf("Connected to server\n");
     const char* ping = "ping";
-    result = send( my_sckt, ping, strlen(ping), 0);
+    //result = send( my_sckt, ping, strlen(ping), 0);
+    result = SendMessage(my_sckt, ping);
     if( result <= 0 )
     {
         perror("Error send(): ");
