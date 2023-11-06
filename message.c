@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include "message.h"
 
-#define MAX_MESSAGE 254
+#define MAX_MESSAGE 5
 
 size_t SendMessage(int socket_id, const char* text)
 {
@@ -53,7 +53,7 @@ size_t SendMessage(int socket_id, const char* text)
             buffer[1] = MAX_MESSAGE;
             strncpy(buffer + 2, text, MAX_MESSAGE);
             buffer[MAX_MESSAGE + 2] = '\0';
-            int cur_sent = send( socket_id, buffer, MAX_MESSAGE + 2, 0) - 2;
+            int cur_sent = send( socket_id, buffer, MAX_MESSAGE + 2, 0);
             if(cur_sent <= 0)
                 return cur_sent;
             sent += (cur_sent - 2);
