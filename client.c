@@ -36,9 +36,11 @@ int main(int argc, char * argv[])
         exit(EXIT_FAILURE);
     }
     printf("Connected to server\n");
-    const char* ping = "It's my first try to encode message";
-    //result = send( my_sckt, ping, strlen(ping), 0);
-    result = SendMessage(my_sckt, ping);
+    //const char* ping = "It's my first try to encode message";
+    //result = SendMessage(my_sckt, ping);
+    const char* ping = "ping";
+    result = send( my_sckt, ping, strlen(ping), 0);
+
     if( result <= 0 )
     {
         perror("Error send(): ");
