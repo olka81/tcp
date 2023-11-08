@@ -8,11 +8,34 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #define PORT_NUMBER 4242
 
+void signal_handler(int sn) 
+{
+    printf("Received signal %d\n", sn);
+    while(1)
+    {
+        int st;
+        int pid = waitpid(-1, &st, WNOHANG);
+        if(pid == 0)
+        {
+            break; //noone exites
+        }
+        if(pid < 0)
+        {
+            perror("Waitpid returned -1:");
+            break;
+        }
+        printf("Child process %d terminated\n", pid);
+    }
+}
+
 int main(int argc, char * argv[])
 {
+    signal(SIGCHLD, signal_handler);
     int listen_sckt = socket(AF_INET, SOCK_STREAM, 0);
     if(listen_sckt  < 0 )
     {
@@ -94,7 +117,8 @@ int main(int argc, char * argv[])
         {
             perror ("Error fork():");
             close(client_sckt);
-            continue; // or exit?
+            abort();
+            //continue; // or exit?
         }
         else
         {
