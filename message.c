@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include "message.h"
@@ -20,7 +21,7 @@ size_t SendMessage(int socket_id, const char* text)
     uint8_t tag; 
     size_t length = strlen(text); 
     char buffer[MAX_MESSAGE];
-    char eof[2] = "40";
+    uint8_t eof[2] = {4, 0};;
     memset(buffer, 0, MAX_MESSAGE);
     size_t sent = 0;
     while( sent < length )
@@ -67,4 +68,45 @@ size_t SendMessage(int socket_id, const char* text)
     {
         return sent;
     }    
+}
+
+size_t RecieveMessage(int socket_id, int (*msgFunction) (const char*, int))
+{
+    uint8_t header[2];
+    uint8_t length;
+    size_t recieved = 0;
+    char buffer[MAX_MESSAGE];
+    if(recv (socket_id , header, 2, 0) < 0)
+    {
+        return -1;
+    }
+    if(header[0] == 0) //it's a short msg
+    {
+        length = header[1];
+        if(length > 0)
+        {
+            recieved = recv (socket_id, buffer, length, 0);
+            msgFunction(buffer, recieved);
+        }
+        return recieved; //cmp length and recieved?
+    }
+    else
+    {
+        while((header[0] == 1))
+        {
+            length = header[1];
+            if(length > 0)
+            {
+                recieved += recv (socket_id, buffer, length, 0);
+                msgFunction(buffer, recieved);
+            }
+            if(recv (socket_id , header, 2, 0) < 0)
+            {
+                return -1;
+            }
+        }
+    }
+
+
+    return recieved;
 }
