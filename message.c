@@ -24,9 +24,10 @@ size_t SendMessage(int socket_id, const char* text)
     uint8_t eof[2] = {4, 0};;
     memset(buffer, 0, MAX_MESSAGE);
     size_t sent = 0;
+    //seems, I need (length - sent) variable
     while( sent < length )
     {
-        if(length < MAX_MESSAGE) //it's either short message or end of long message
+        if((length - sent) < MAX_MESSAGE) //it's either short message or end of long message
         {
             if(buffer[0] == 0) //it's a short message
             {
@@ -39,10 +40,10 @@ size_t SendMessage(int socket_id, const char* text)
             }
             else // (buffer[0] == 1)
             {
-                buffer[1] = length;
-                strncpy(buffer + 2, text, length);
+                buffer[1] = length - sent;
+                strncpy(buffer + 2, text + sent, length - sent);
                 buffer[length + 2] = '\0';
-                int cur_sent = send( socket_id, buffer + sent, length - sent + 2, 0);
+                int cur_sent = send( socket_id, buffer, length - sent + 2, 0);
                 if(cur_sent <= 0)
                     return cur_sent;
                 sent += (cur_sent - 2); //maybe I need some constant for tag+langth size
@@ -76,10 +77,12 @@ size_t RecieveMessage(int socket_id, int (*msgFunction) (const char*, int))
     uint8_t length;
     size_t recieved = 0;
     char buffer[MAX_MESSAGE];
+    memset(buffer, 0, MAX_MESSAGE);
     if(recv (socket_id , header, 2, 0) < 0)
     {
         return -1;
     }
+    printf ("Received TL %d%d\n", header[0], header[1]);
     if(header[0] == 0) //it's a short msg
     {
         length = header[1];
@@ -87,16 +90,18 @@ size_t RecieveMessage(int socket_id, int (*msgFunction) (const char*, int))
         {
             recieved = recv (socket_id, buffer, length, 0);
             msgFunction(buffer, recieved);
+            memset(buffer, 0, MAX_MESSAGE);
         }
         return recieved; //cmp length and recieved?
     }
     else
     {
-        while((header[0] == 1))
+        while(header[0] == 1)
         {
             length = header[1];
             if(length > 0)
             {
+                memset(buffer, 0, MAX_MESSAGE);
                 recieved += recv (socket_id, buffer, length, 0);
                 msgFunction(buffer, recieved);
             }
@@ -104,9 +109,8 @@ size_t RecieveMessage(int socket_id, int (*msgFunction) (const char*, int))
             {
                 return -1;
             }
+            printf ("Received TL %d%d\n", header[0], header[1]);
         }
+        return recieved; //we'll get here in the end of long message, header[0] is 4, header[1] is 0
     }
-
-
-    return recieved;
 }

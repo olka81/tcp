@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include "message.h"
 
 #define PORT_NUMBER 4242
 
@@ -31,6 +32,11 @@ void signal_handler(int sn)
         }
         printf("Child process %d terminated\n", pid);
     }
+}
+
+int message_handler(const char* text, int length)
+{
+    printf ("Received data from Client %d bytes, message: %s\n", length, text);
 }
 
 int main(int argc, char * argv[])
@@ -92,7 +98,9 @@ int main(int argc, char * argv[])
         if (pid == 0) //child process
         {
             // Receive messages from the client
-            if ((result = recv (client_sckt , buffer, max_buf, 0)) < 0) {
+            //if ((result = recv (client_sckt , buffer, max_buf, 0)) < 0) {
+            if(result = RecieveMessage(client_sckt, message_handler) < 0) 
+            {
                 perror ("Error in recv():");
                 //close listening socket?
                 exit(EXIT_FAILURE);
