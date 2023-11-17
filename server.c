@@ -14,6 +14,13 @@
 
 #define PORT_NUMBER 4242
 
+typedef struct my_buffer {
+
+    char * data;
+    size_t len;
+
+} my_buffer_t;
+
 void signal_handler(int sn) 
 {
     printf("Received signal %d\n", sn);
@@ -30,13 +37,15 @@ void signal_handler(int sn)
             perror("Waitpid returned -1:");
             break;
         }
-        printf("Child process %d terminated\n", pid);
+        printf("Child process %d terminated with %d\n", pid, WEXITSTATUS(st));
     }
 }
 
-int message_handler(const char* text, int length)
-{
-    printf ("Received data from Client %d bytes, message: %s\n", length, text);
+int message_handler(my_buffer_t * ctx, const char* text, int length) {
+
+    // append text to ctx.data
+
+    printf ("Received data from Client %d bytes, message: %.*s\n", length, length, text);
 }
 
 int main(int argc, char * argv[])
@@ -97,9 +106,26 @@ int main(int argc, char * argv[])
         pid_t pid = fork ();
         if (pid == 0) //child process
         {
+
+            // allocate/init
+            // int res;
+            // do
+            // deallocate
+            // exit(res)
+
+
+            if (something went wrong) {
+                res = some_code;
+                goto exit;
+            }
+
+            exit:
+
+            my_buffer_t buf = {0};
+
             // Receive messages from the client
             //if ((result = recv (client_sckt , buffer, max_buf, 0)) < 0) {
-            if(result = RecieveMessage(client_sckt, message_handler) < 0) 
+            if((result = RecieveMessage(client_sckt, &buf, message_handler) < 0))
             {
                 perror ("Error in recv():");
                 //close listening socket?
