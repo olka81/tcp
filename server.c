@@ -41,8 +41,9 @@ void signal_handler(int sn)
     }
 }
 
-int message_handler(my_buffer_t * ctx, const char* text, int length) {
+int message_handler(void* ptr, const char* text, int length) {
 
+    my_buffer_t* ctx = (my_buffer_t*)ptr;
     // append text to ctx.data
 
     printf ("Received data from Client %d bytes, message: %.*s\n", length, length, text);
@@ -112,14 +113,6 @@ int main(int argc, char * argv[])
             // do
             // deallocate
             // exit(res)
-
-
-            if (something went wrong) {
-                res = some_code;
-                goto exit;
-            }
-
-            exit:
 
             my_buffer_t buf = {0};
 

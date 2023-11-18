@@ -15,7 +15,7 @@
  * @param text payload
  * @return the number of payload bytes that was actually sent, or a negative value if send failed outright.
  */
-ssize_t SendOnePack(int socket_id, uint8_t tag, uint8_t length, char* text_with_oofset)
+ssize_t SendOnePack(int socket_id, uint8_t tag, uint8_t length, const char* text_with_oofset)
 {
     char buffer[MAX_PAYLAOD + HEADER_SIZE];
     buffer[0] == tag;
@@ -66,11 +66,11 @@ ssize_t SendMessage(int socket_id, const char* text)
     }    
 }
 
-size_t RecieveMessage(int socket_id, void * ctx, msg_function_f msg_function)
+ssize_t RecieveMessage(int socket_id, void * ctx, msg_function_f msg_function)
 {
     uint8_t header[2];
     uint8_t length;
-    size_t recieved = 0;
+    ssize_t recieved = 0;
     char buffer[MAX_PAYLAOD];
     memset(buffer, 0, MAX_PAYLAOD);
     if(recv (socket_id , header, 2, 0) < 0)

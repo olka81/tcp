@@ -1,5 +1,5 @@
 all:
-	gcc server.c message.c -o server
+	gcc -fsanitize=memory server.c message.c -o server
 	gcc client.c message.c -o client
 
 client:
