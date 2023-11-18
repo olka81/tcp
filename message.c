@@ -6,7 +6,8 @@
 #include <sys/socket.h>
 #include "message.h"
 
-#define MAX_MESSAGE 30
+#define MAX_PAYLAOD 30
+#define HEADER_SIZE 30
 
 /**
  * Sends the message through the specified socket, chopping it into multiple payloads if necessary.
@@ -14,60 +15,48 @@
  * @param text payload
  * @return the number of payload bytes that was actually sent, or a negative value if send failed outright.
  */
+ssize_t SendOnePack(int socket_id, uint8_t tag, uint8_t length, char* text_with_oofset)
+{
+    char buffer[MAX_PAYLAOD + HEADER_SIZE];
+    buffer[0] == tag;
+    buffer[1] = length;
+    strncpy(buffer + HEADER_SIZE, text_with_oofset, length);
+    return send( socket_id, buffer, length + HEADER_SIZE, 0);
+}
+
 ssize_t SendMessage(int socket_id, const char* text)
 {
     //TLV:
     // 1 byte Tag:
-    //  0 -- text, utf-8, short message, le MAX_MESSAGE bytes //for the test it'll limited by 16 bytes
+    //  0 -- text, utf-8, short message, le MAX_PAYLAOD bytes //for the test it'll limited by 16 bytes
     //  1 -- text, utf-8, part of long message
     //  4 -- eof, for long messages only
     // 1 byte Length
-    // <MAX_MESSAGE byte text
+    // <MAX_PAYLAOD byte text
 
     if (!text) {
         return -1;
     }
 
     size_t length = strlen(text);
-    char buffer[MAX_MESSAGE];
-    uint8_t eof[2] = {4, 0};;
-    memset(buffer, 0, MAX_MESSAGE);
-    size_t sent = 0;
-    //seems, I need (length - sent) variable
+    uint8_t eof[HEADER_SIZE] = {4, 0};;
+    ssize_t sent = 0;
+    if(length <= MAX_PAYLAOD)
+    {
+        ssize_t cur_sent = SendOnePack(socket_id, 0, (uint8_t)length, text);
+        return (cur_sent < 0) ? cur_sent : cur_sent - HEADER_SIZE;
+    }
+
     while( sent < length )
     {
-        if((length - sent) < MAX_MESSAGE) //it's either short message or end of long message
+        ssize_t cur_sent = SendOnePack(socket_id, 1, (uint8_t)(length - sent), text + sent);
+        if(cur_sent < 0)
         {
-            if(buffer[0] == 0) //it's a short message
-            {
-                buffer[0] == 0;
-                buffer[1] = length;
-                strncpy(buffer + 2, text, length);
-                sent = send( socket_id, buffer, length + 2, 0);
-                return sent - 2; //even if it's not ok, we know it on the calling side
-            }
-            else // (buffer[0] == 1)
-            {
-                buffer[1] = length - sent;
-                strncpy(buffer + 2, text + sent, length - sent);
-                ssize_t cur_sent = send( socket_id, buffer, length - sent + 2, 0);
-                if(cur_sent <= 0)
-                    return cur_sent;
-                sent += (cur_sent - 2); //maybe I need some constant for tag+length size
-            }            
+            return cur_sent;
         }
-        else
-        {
-            buffer[0] = 1;
-            buffer[1] = MAX_MESSAGE;
-            strncpy(buffer + 2, text, MAX_MESSAGE - 2);
-            int cur_sent = send( socket_id, buffer, MAX_MESSAGE + 2, 0);
-            if(cur_sent <= 0)
-                return cur_sent;
-            sent += (cur_sent - 2);
-        }
+        sent += (cur_sent - 2);            
     }
-    if(send( socket_id, eof, 2, 0 ) < 0)
+    if(send(socket_id, eof, 2, 0 ) < 0)
     {
         return -1;
     }
@@ -82,8 +71,8 @@ size_t RecieveMessage(int socket_id, void * ctx, msg_function_f msg_function)
     uint8_t header[2];
     uint8_t length;
     size_t recieved = 0;
-    char buffer[MAX_MESSAGE];
-    memset(buffer, 0, MAX_MESSAGE);
+    char buffer[MAX_PAYLAOD];
+    memset(buffer, 0, MAX_PAYLAOD);
     if(recv (socket_id , header, 2, 0) < 0)
     {
         return -1;
@@ -96,7 +85,7 @@ size_t RecieveMessage(int socket_id, void * ctx, msg_function_f msg_function)
         {
             recieved = recv (socket_id, buffer, length, 0);
             msg_function(ctx, buffer, recieved);
-            memset(buffer, 0, MAX_MESSAGE);
+            memset(buffer, 0, MAX_PAYLAOD);
         }
         return recieved; //cmp length and recieved?
     }
@@ -107,7 +96,7 @@ size_t RecieveMessage(int socket_id, void * ctx, msg_function_f msg_function)
             length = header[1];
             if(length > 0)
             {
-                memset(buffer, 0, MAX_MESSAGE);
+                memset(buffer, 0, MAX_PAYLAOD);
                 recieved += recv (socket_id, buffer, length, 0);
                 msg_function(ctx, buffer, recieved);
             }
