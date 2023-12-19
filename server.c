@@ -14,6 +14,12 @@
 
 #define PORT_NUMBER 4242
 
+/**
+ * Struct to store context
+ *  @note data
+ *  @note len used length
+ *  @note available allocated memory amount
+ */
 typedef struct my_buffer {
     char * data;
     size_t len;
@@ -22,6 +28,11 @@ typedef struct my_buffer {
 
 // I want to emulate ctor and dtor
 
+/**
+ * Constructor for my struct
+ *  @param init_size initial available allocated memory amount
+ *  @return result ptr or NULL
+ */
 my_buffer_t* ConstructBuffer(size_t init_size)
 {
     my_buffer_t* ptr = (my_buffer_t*)malloc(sizeof(my_buffer_t));
@@ -40,26 +51,39 @@ my_buffer_t* ConstructBuffer(size_t init_size)
     return ptr;
 }
 
+
 void DestructBuffer(my_buffer_t* ptr)
 {
     free(ptr->data);
     free(ptr);
 }
 
-size_t AppendBuffer(my_buffer_t* ptr, char* text, size_t length)
+/// WOW! VS Code can generate Doxigen comments!!!!
+/// Append message to context
+/// @param ptr context used
+/// @param text incoming msg
+/// @param length  size
+/// @return lenght or -1
+ssize_t AppendBuffer(my_buffer_t* ptr, char* text, size_t length)
 {
     if(length < (ptr->available - ptr->len))
     {
         memcpy(ptr->data + ptr->len, text, length); // what? memcpy has no specific errors?!
-
+        ptr->len += length;
         //append
     }
     else
     {
-        //reallocate
+        //reallocate alittle more
+        ptr->data = realloc(ptr->data, ptr->available + length * 2);
+        if(ptr->data == NULL)
+            return -1;
+        memcpy(ptr->data + ptr->len, text, length);
+        ptr->len += length;
+        ptr->available += (length * 2);
         //append
     }
-    return length;
+    return length; //if ut's ok
 }
 
 void signal_handler(int sn) 
