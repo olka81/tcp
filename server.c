@@ -14,78 +14,6 @@
 
 #define PORT_NUMBER 4242
 
-/**
- * Struct to store context
- *  @note data
- *  @note len used length
- *  @note available allocated memory amount
- */
-typedef struct my_buffer {
-    char * data;
-    size_t len;
-    size_t available;
-} my_buffer_t;
-
-// I want to emulate ctor and dtor
-
-/**
- * Constructor for my struct
- *  @param init_size initial available allocated memory amount
- *  @return result ptr or NULL
- */
-my_buffer_t* ConstructBuffer(size_t init_size)
-{
-    my_buffer_t* ptr = (my_buffer_t*)malloc(sizeof(my_buffer_t));
-    if(ptr == NULL)
-    {
-        return NULL;
-    }
-    ptr->len = 0;
-    ptr->data = (char *)malloc(init_size);
-    if(ptr->data == NULL)
-    {
-        free(ptr);
-        return NULL;
-    }
-    ptr->available = init_size;
-    return ptr;
-}
-
-
-void DestructBuffer(my_buffer_t* ptr)
-{
-    free(ptr->data);
-    free(ptr);
-}
-
-/// WOW! VS Code can generate Doxigen comments!!!!
-/// Append message to context
-/// @param ptr context used
-/// @param text incoming msg
-/// @param length  size
-/// @return lenght or -1
-ssize_t AppendBuffer(my_buffer_t* ptr, char* text, size_t length)
-{
-    if(length < (ptr->available - ptr->len))
-    {
-        memcpy(ptr->data + ptr->len, text, length); // what? memcpy has no specific errors?!
-        ptr->len += length;
-        //append
-    }
-    else
-    {
-        //reallocate alittle more
-        ptr->data = realloc(ptr->data, ptr->available + length * 2);
-        if(ptr->data == NULL)
-            return -1;
-        memcpy(ptr->data + ptr->len, text, length);
-        ptr->len += length;
-        ptr->available += (length * 2);
-        //append
-    }
-    return length; //if ut's ok
-}
-
 void signal_handler(int sn) 
 {
     printf("Received signal %d\n", sn);
@@ -106,12 +34,38 @@ void signal_handler(int sn)
     }
 }
 
-int message_handler(void* ptr, const char* text, int length) {
+/// WOW! VS Code can generate Doxigen comments!!!!
+/// @brief process message, append message to context
+/// @param ptr -- context used
+/// @param text -- incoming msg
+/// @param length size
+/// @return 1 -- ok, -1 -- error
+int server_message_handler(void* ptr, const char* text, int length) {
 
     my_buffer_t* ctx = (my_buffer_t*)ptr;
     // append text to ctx.data
 
+    if(length < (ctx->available - ctx->len))
+    {
+        memcpy(ctx->data + ctx->len, text, length); // what? memcpy has no specific errors?!
+        ctx->len += length;
+    }
+    else
+    {
+        //reallocate alittle more
+        ctx->data = realloc(ctx->data, ctx->available + length * 2);
+        if(ctx->data == NULL)
+        {
+            printf("Error append message to context");
+            return -1;
+        } 
+        memcpy(ctx->data + ctx->len, text, length);
+        ctx->len += length;
+        ctx->available += (length * 2);
+        printf("Buffer reallocation. New avaible size is %ld bytes", ctx->available );
+    }
     printf ("Received data from Client %d bytes, message: %.*s\n", length, length, text);
+    return 1;
 }
 
 int main(int argc, char * argv[])
@@ -154,10 +108,6 @@ int main(int argc, char * argv[])
         exit(EXIT_FAILURE);
     }
     printf("Listening...\n");
-
-    char buffer[256];
-    int max_buf = sizeof(buffer);
-
     while (1) 
     {
         struct sockaddr_in clientAddr;
@@ -179,30 +129,39 @@ int main(int argc, char * argv[])
             // deallocate
             // exit(res)
 
-            my_buffer_t buf = {0};
-
-            // Receive messages from the client
-            //if ((result = recv (client_sckt , buffer, max_buf, 0)) < 0) {
-            if((result = RecieveMessage(client_sckt, &buf, message_handler) < 0))
+            const size_t init_buf_size = 0; // I can init it by some other value. but I want to see realloc effect
+            my_buffer_t * buf = ConstructBuffer(init_buf_size);
+            if(buf == NULL )
             {
-                perror ("Error in recv():");
+                //perror ("Error in recv():");
+                printf("Error constructing buffer");
                 //close listening socket?
                 exit(EXIT_FAILURE);
             }
 
-            // buffer[result] = 0;
+            // Receive messages from the client
+            result = RecieveMessage(client_sckt, buf, server_message_handler);
+            if(result < 0)
+            {
+                perror ("Error in recv():");
+                //close listening socket?
+                DestructBuffer(buf);
+                exit(EXIT_FAILURE);
+            }
 
-            printf ("Received data from Client %.*s\n", result, buffer);
+            printf ("Received data from Client %.*s\n", result, buf->data);
             const char* pong = "pong";
-            result = send( client_sckt, pong, strlen(pong), 0);
+            result =  SendMessage(client_sckt, pong);
             if( result < 0 )
             {
                 perror ("Error in recv():");
                 //close listening socket?
+                DestructBuffer(buf);
                 exit(EXIT_FAILURE);
             }
             printf("Sent to Client %s\n", pong);
             shutdown(client_sckt, SHUT_RDWR);
+            DestructBuffer(buf);
             exit(EXIT_SUCCESS);
         } 
         else if(pid == -1)

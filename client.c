@@ -14,6 +14,17 @@
 
 #define PORT_NUMBER 4242
 
+/// @brief let it be stupid/ I have already smart handler at server side. no context. just prinft
+/// @param ptr -- not used
+/// @param text -- incoming msg
+/// @param length size
+/// @return 1 -- ok, -1 -- error
+int client_message_handler(void* ptr, const char* text, int length) 
+{
+    printf("I recieved %*.s ", length, text);
+    return 1;
+}
+
 int main(int argc, char * argv[])
 {
     int my_sckt = socket(AF_INET, SOCK_STREAM, 0);
@@ -39,8 +50,6 @@ int main(int argc, char * argv[])
     //const char* ping = "It's my first try to encode message";
     const char* ping = "123456789012345678901234567890abcdefg";
     result = SendMessage(my_sckt, ping);
-    //const char* ping = "ping";
-    //result = send( my_sckt, ping, strlen(ping), 0);
 
     if( result <= 0 )
     {
@@ -52,15 +61,13 @@ int main(int argc, char * argv[])
     //I still don't understand shoud I call shutdown with SHUT_WR in this case or not
     //shutdown(my_sckt, SHUT_WR);
 
-    //well, I still have problems with implementation of a logical part: how should my server and client support handling messages. TLV or smth
-    char recieveBuf[256];
-    memset(recieveBuf, 0, 256);
-    result = recv(my_sckt, recieveBuf, 255, 0);
+    char* empty_context = NULL;
+    result = RecieveMessage(my_sckt, empty_context, client_message_handler);
+    //recv(my_sckt, recieveBuf, 255, 0);
     if(result < 0)
     {
         perror("Error recv(): ");
     }
-    printf("I recieved %s\r\n", recieveBuf);
     shutdown(my_sckt, SHUT_RDWR); 
     exit(EXIT_SUCCESS);
 }
