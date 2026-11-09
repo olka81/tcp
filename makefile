@@ -1,6 +1,6 @@
 all:
-	gcc server.c message.c -o server -fsanitize=address -static-libasan -g -Wall
-	gcc client.c message.c -o client -fsanitize=address -static-libasan -g -Wall
+	gcc server.c message.c -o server -fsanitize=address -g -Wall
+	gcc client.c message.c -o client -fsanitize=address -g -Wall
 
 client:
 	gcc client.c message.c -o client

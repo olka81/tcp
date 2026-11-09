@@ -53,16 +53,17 @@ int server_message_handler(void* ptr, const char* text, int length) {
     else
     {
         //reallocate alittle more
-        ctx->data = realloc(ctx->data, ctx->available + length * 2);
-        if(ctx->data == NULL)
+        char* new_data = realloc(ctx->data, ctx->available + length * 2);
+        if(new_data == NULL)
         {
-            printf("Error append message to context");
+            printf("Error append message to context\n"); // ctx->data is still valid and freed by DestructBuffer
             return -1;
-        } 
+        }
+        ctx->data = new_data;
         memcpy(ctx->data + ctx->len, text, length);
         ctx->len += length;
         ctx->available += (length * 2);
-        printf("Buffer reallocation. New avaible size is %ld bytes", ctx->available );
+        printf("Buffer reallocation. New avaible size is %zu bytes\n", ctx->available );
     }
     printf ("Received data from Client %d bytes, message: %.*s\n", length, length, text);
     return 1;

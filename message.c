@@ -56,7 +56,12 @@ ssize_t SendMessage(int socket_id, const char* text)
 
     while( sent < length )
     {
-        ssize_t cur_sent = SendOnePack(socket_id, 1, (uint8_t)(length - sent), text + sent);
+        size_t chunk = length - sent;
+        if(chunk > MAX_PAYLAOD)
+        {
+            chunk = MAX_PAYLAOD; // one packet can't carry more than MAX_PAYLAOD bytes
+        }
+        ssize_t cur_sent = SendOnePack(socket_id, 1, (uint8_t)chunk, text + sent);
         if(cur_sent < 0)
         {
             return cur_sent;
@@ -74,59 +79,77 @@ ssize_t SendMessage(int socket_id, const char* text)
     }    
 }
 
+/// @brief receive exactly `size` bytes. TCP is a stream, one recv() may return less than asked
+/// @return 1 -- ok, 0 -- peer closed the connection, -1 -- recv error
+static int RecvExact(int socket_id, void* buf, size_t size)
+{
+    size_t got = 0;
+    while(got < size)
+    {
+        ssize_t r = recv(socket_id, (char*)buf + got, size - got, 0);
+        if(r < 0)
+        {
+            return -1;
+        }
+        if(r == 0)
+        {
+            return 0; // connection closed before we got everything
+        }
+        got += r;
+    }
+    return 1;
+}
+
 /// @brief resieve TLV message and provide it to msg_function
 /// @param socket_id -- listening socket
 /// @param ctx -- some context
 /// @param msg_function -- prividing function. works with ctx. shoul return the same lenght or error
 /// @return recieved payload amount, without headers.
-///         or errors: -1 recv error, -2 msg_function error
+///         or errors: -1 recv error, -2 msg_function error,
+///         -3 connection closed too early, -4 bad header (protocol violation)
 ssize_t RecieveMessage(int socket_id, void * ctx, msg_function_f msg_function)
 {
-    uint8_t header[2];
-    uint8_t length;
+    uint8_t header[HEADER_SIZE];
     ssize_t recieved = 0;
     char buffer[MAX_PAYLAOD];
-    memset(buffer, 0, MAX_PAYLAOD);
-    if(recv (socket_id , header, 2, 0) < 0)
+
+    while(1)
     {
-        return -1;
-    }
-    printf ("Received TL %d%d\n", header[0], header[1]);
-    if(header[0] == 0) //it's a short msg
-    {
-        length = header[1];
+        int r = RecvExact(socket_id, header, HEADER_SIZE);
+        if(r <= 0)
+        {
+            return (r == 0) ? -3 : -1;
+        }
+        printf ("Received TL %d %d\n", header[0], header[1]);
+
+        uint8_t tag = header[0];
+        uint8_t length = header[1];
+
+        if(tag == 4) // eof of a long message
+        {
+            return recieved;
+        }
+        if((tag != 0 && tag != 1) || length > MAX_PAYLAOD)
+        {
+            return -4; // never read more than buffer can hold
+        }
         if(length > 0)
         {
-            recieved = recv (socket_id, buffer, length, 0);
+            r = RecvExact(socket_id, buffer, length);
+            if(r <= 0)
+            {
+                return (r == 0) ? -3 : -1;
+            }
+            recieved += length;
             if(msg_function(ctx, buffer, length) != 1)
             {
                 return -2;
             }
-            memset(buffer, 0, MAX_PAYLAOD);
         }
-        return recieved; //cmp length and recieved?
-    }
-    else
-    {
-        while(header[0] == 1)
+        if(tag == 0) // short message is a single packet
         {
-            length = header[1];
-            if(length > 0)
-            {
-                memset(buffer, 0, MAX_PAYLAOD);
-                recieved += recv (socket_id, buffer, length, 0);
-                if(msg_function(ctx, buffer, length) != 1)
-                {
-                    return -2;
-                }                
-            }
-            if(recv (socket_id , header, 2, 0) < 0)
-            {
-                return -1;
-            }
-            printf ("Received TL %d%d\n", header[0], header[1]);
+            return recieved;
         }
-        return recieved; //we'll get here in the end of long message, header[0] is 4, header[1] is 0
     }
 }
 

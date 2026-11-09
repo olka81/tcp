@@ -21,7 +21,7 @@
 /// @return 1 -- ok, -1 -- error
 int client_message_handler(void* ptr, const char* text, int length) 
 {
-    printf("I recieved %*.s ", length, text);
+    printf("I recieved %.*s\n", length, text);
     return 1;
 }
 
